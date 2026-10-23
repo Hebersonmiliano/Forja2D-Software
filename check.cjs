@@ -2,15 +2,17 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const elements={},stored={},downloads=[];let animation;
 const context=new Proxy({}, {get:()=>()=>{}});
 function element(){return {value:0,checked:false,style:{},children:[],append(...v){this.children.push(...v)},replaceChildren(...v){this.children=v},getContext(){return context},click(){},toBlob(cb){cb(new Blob(['png']))}}}
-const sandbox={document:{getElementById(id){return elements[id]??=element()},createElement:element,createTextNode:t=>t},localStorage:{setItem(k,v){stored[k]=v},getItem(k){return stored[k]}},requestAnimationFrame(fn){animation=fn},performance:{now:()=>0},confirm:()=>true,structuredClone,Blob,URL:{createObjectURL(blob){downloads.push(blob);return 'blob:test'},revokeObjectURL(){}},setTimeout:()=>{},console};
+const sandbox={sessionStorage:{getItem(){return null}},document:{getElementById(id){return elements[id]??=element()},createElement:element,createTextNode:t=>t},localStorage:{setItem(k,v){stored[k]=v},getItem(k){return stored[k]}},requestAnimationFrame(fn){animation=fn},performance:{now:()=>0},confirm:()=>true,structuredClone,Blob,URL:{createObjectURL(blob){downloads.push(blob);return 'blob:test'},revokeObjectURL(){}},setTimeout:()=>{},console};
 vm.runInNewContext(fs.readFileSync(__dirname+'/app.js','utf8').replace('refresh();requestAnimationFrame(tick);','refresh();requestAnimationFrame(tick);testHooks={tween,totalDuration};'),sandbox);
 const project=()=>{const p=JSON.parse(stored['forja2d-project']);p.frames=p.animations[p.activeAnimation].frames;return p;};
 assert.equal(elements.parts.children.length,10);
 elements.add.onclick();assert.equal(project().frames.length,2);
 elements.angle.value='45';elements.angle.oninput();assert.equal(project().frames[1].angles.body,45);assert.equal(project().frames[0].angles.body,0);
-elements.demo.onclick();assert.equal(project().frames.length,8);assert.notEqual(project().frames[1].angles.legL,0);
+elements.demo.onclick();assert.equal(project().animations.length,2);assert.equal(project().frames.length,8);assert.notEqual(project().frames[1].angles.legL,0);
 elements.play.onclick();animation(150);assert.equal(elements.play.textContent,'■ Parar');elements.play.onclick();assert.equal(elements.play.textContent,'▶ Reproduzir');
 elements.export.onclick();assert.equal(downloads.length,2);assert.match(elements.status.textContent,/8 colunas/);
+elements.crouch.onclick();assert.equal(project().animations.at(-1).name,'Agachado');assert.equal(project().frames.length,4);assert.ok(project().frames[0].y>245);
+elements.crouchWalk.onclick();assert.equal(project().animations.at(-1).name,'Andando agachado');assert.equal(project().frames.length,8);assert.notEqual(project().frames[0].angles.legL,project().frames[1].angles.legL);
 elements.new.onclick();assert.equal(project().frames.length,1);assert.equal(elements.delete.disabled,true);
 console.log('OK: hierarquia, poses independentes, caminhada, reprodução, exportação e novo projeto. Verificação com DOM/canvas simulados.');
 
@@ -50,6 +52,8 @@ const event=(x,y)=>({button:0,pointerId:1,clientX:x,clientY:y,preventDefault(){}
  elements.play.onclick();animation(10000);assert.equal(elements.play.textContent,'■ Parar');elements.play.onclick();
  elements.animation.value='1';elements.animation.onchange();elements.play.onclick();animation(10000);assert.equal(elements.play.textContent,'▶ Reproduzir');
  elements.save.onclick();const saved=JSON.parse(await downloads.at(-1).text());assert.equal(saved.version,3);assert.equal(saved.animations[1].name,'Pular');
+ elements.new.onclick();elements.allMovements.onclick();assert.equal(project().animations.length,10);assert.deepEqual(project().animations.slice(1).map(a=>a.frames.length),[4,6,6,4,6,2,6,4,6]);assert.equal(project().animations.slice(1).reduce((n,a)=>n+a.frames.length,0),44);elements.exportAll.onclick();const pack=JSON.parse(await downloads.at(-1).text());assert.equal(pack.frameCount,44);assert.equal(pack.animations[8].start,38);assert.equal(pack.animations[8].count,6);assert.equal(pack.rows,6);
+ console.log('OK: nove movimentos, 44 poses e metadados da spritesheet completa.');
  console.log('OK: animações independentes, duração, FPS, tamanho, PNG + metadados, duplicação, exclusão, histórico, loop e salvamento.');
  console.log('OK: arraste com pai girado, dimensões, pivô, camadas, desfazer/refazer, migração v1 e rejeição de geometria inválida.');
 })().catch(e=>{console.error(e);process.exitCode=1});

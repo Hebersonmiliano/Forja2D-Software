@@ -5,6 +5,22 @@ Editor de personagens articulados para navegador, sem dependências externas.
 - [Abrir no Portal Pixel](https://hebersonmiliano.github.io/portal-jogos/ferramentas/forja2d/)
 - [Abrir versão independente](https://hebersonmiliano.github.io/Forja2D-Software/)
 
+## Imagem para personagem com 44 poses
+
+Abra Imagem → Personagem. Importe PNG, JPEG ou WebP com o corpo inteiro, até 10 MB e 16 milhões de pixels. A imagem é reduzida para no máximo 1024 pixels no maior lado para edição local. A remoção opcional de uma cor de fundo afeta todos os pixels semelhantes, inclusive no interior da arte.
+
+Recorte dez peças, uma a uma: tronco, cabeça, dois braços, dois antebraços, duas coxas e duas pernas. Arraste o retângulo na imagem, ajuste o ponto de giro em porcentagem do recorte e confirme. A seleção no menu permite refazer qualquer peça. Partes sobrepostas ou escondidas precisam ser preparadas separadamente: não há separação por IA ou reconstrução automática de desenhos ausentes.
+
+Criar personagem transfere as peças ao editor e solicita confirmação antes de substituir o projeto atual. Uma cópia do projeto anterior fica em Baixar projeto anterior à importação; também é possível desfazer a importação na sessão. A transferência usa sessionStorage, portanto execute a página por HTTP/GitHub Pages. Não há envio da imagem para servidor.
+
+O personagem recebe nove modelos de movimento: Parado 4, Andando 6, Correndo 6, Pulando e caindo 4, Atacando 6, Recebendo dano 2, Morrendo 6, Agachado 4, Andando agachado 6. São 44 poses articuladas editáveis; revise as poses e sobreposições conforme a arte. Os modelos não criam novas vistas desenhadas do personagem.
+
+Criar os 9 movimentos adiciona esse conjunto ao projeto existente, se houver nove vagas. Baixar as 44 poses em PNG gera uma spritesheet de 8 colunas e 6 linhas (4 células finais vazias), mais JSON com os intervalos e as durações. Usa os movimentos mais recentes com os nomes e quantidades padrão. Essa exportação usa as poses definidas, sem interpolação. A exportação individual de cada animação continua incluindo quadros intermediários.
+
+## Movimentos de exemplo
+
+No painel direito, use Andando (8 poses), Agachado (4 poses) ou Andando agachado (8 poses). Cada botão cria uma nova animação em loop e preserva as anteriores. Os exemplos usam o esqueleto padrão; ajuste as poses quando mudar as proporções das peças.
+
 ## Animações
 
 Cada personagem pode ter até 20 animações, com até 120 poses por animação. Use Nova para começar um movimento vazio ou Duplicar para criar uma variação. Selecione o movimento no menu Animação e edite seu nome no painel à direita. Excluir animação pode ser desfeito.
@@ -27,10 +43,10 @@ A spritesheet usa até oito colunas, da esquerda para a direita. Ignore células
 
 ## Verificação
 
-Execute `node check.cjs`. A verificação com DOM/canvas simulados cobre poses independentes, caminhada, exportação, arraste com pai girado, tamanho, pivô, camadas, histórico, migração de projetos, animações independentes, duração, interpolação, metadados, loop e validação de arquivos.
+Execute `node check.cjs` e `node check-personagem.cjs`. A verificação com DOM/canvas simulados cobre poses independentes, caminhada, exportação, arraste com pai girado, tamanho, pivô, camadas, histórico, migração de projetos, animações independentes, duração, interpolação, metadados, loop e validação de arquivos.
 
 ## Publicação
 
-O repositório publica a raiz da branch main no GitHub Pages. A versão integrada ao Portal Pixel é uma cópia de index.html, app.js e style.css em ferramentas/forja2d no repositório portal-jogos. Atualize ambas as cópias a cada versão.
+O repositório publica a raiz da branch main no GitHub Pages. A versão integrada ao Portal Pixel é uma cópia de index.html, app.js, style.css, personagem.html, personagem.js e imagens.css em ferramentas/forja2d no repositório portal-jogos. Atualize ambas as cópias a cada versão.
 
 Ainda não inclui desenho pixel a pixel, novas peças, alteração dos pais dos ossos, contas ou entrega de atividades escolares.
