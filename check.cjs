@@ -3,14 +3,14 @@ const elements={},stored={},downloads=[];let animation;
 const context=new Proxy({}, {get:()=>()=>{}});
 function element(){return {value:0,checked:false,style:{},children:[],append(...v){this.children.push(...v)},replaceChildren(...v){this.children=v},getContext(){return context},click(){},toBlob(cb){cb(new Blob(['png']))}}}
 const sandbox={document:{getElementById(id){return elements[id]??=element()},createElement:element,createTextNode:t=>t},localStorage:{setItem(k,v){stored[k]=v},getItem(k){return stored[k]}},requestAnimationFrame(fn){animation=fn},performance:{now:()=>0},confirm:()=>true,structuredClone,Blob,URL:{createObjectURL(blob){downloads.push(blob);return 'blob:test'},revokeObjectURL(){}},setTimeout:()=>{},console};
-vm.runInNewContext(fs.readFileSync(__dirname+'/app.js','utf8'),sandbox);
-const project=()=>JSON.parse(stored['forja2d-project']);
+vm.runInNewContext(fs.readFileSync(__dirname+'/app.js','utf8').replace('refresh();requestAnimationFrame(tick);','refresh();requestAnimationFrame(tick);testHooks={tween,totalDuration};'),sandbox);
+const project=()=>{const p=JSON.parse(stored['forja2d-project']);p.frames=p.animations[p.activeAnimation].frames;return p;};
 assert.equal(elements.parts.children.length,10);
 elements.add.onclick();assert.equal(project().frames.length,2);
 elements.angle.value='45';elements.angle.oninput();assert.equal(project().frames[1].angles.body,45);assert.equal(project().frames[0].angles.body,0);
 elements.demo.onclick();assert.equal(project().frames.length,8);assert.notEqual(project().frames[1].angles.legL,0);
 elements.play.onclick();animation(150);assert.equal(elements.play.textContent,'■ Parar');elements.play.onclick();assert.equal(elements.play.textContent,'▶ Reproduzir');
-elements.export.onclick();assert.equal(downloads.length,1);assert.match(elements.status.textContent,/8 colunas/);
+elements.export.onclick();assert.equal(downloads.length,2);assert.match(elements.status.textContent,/8 colunas/);
 elements.new.onclick();assert.equal(project().frames.length,1);assert.equal(elements.delete.disabled,true);
 console.log('OK: hierarquia, poses independentes, caminhada, reprodução, exportação e novo projeto. Verificação com DOM/canvas simulados.');
 
@@ -30,12 +30,27 @@ const event=(x,y)=>({button:0,pointerId:1,clientX:x,clientY:y,preventDefault(){}
  elements.pivotX.value='20';elements.pivotX.onchange();assert.equal(project().parts.armL.pivotX,20);
  elements.front.onclick();assert.equal(project().order.indexOf('armL'),3);
  elements.back.onclick();assert.equal(project().order.indexOf('armL'),2);
- const old=project();old.version=1;delete old.order;for(const p of Object.values(old.parts))for(const k of ['x','y','w','h','pivotX','pivotY'])delete p[k];
+ const old=project();old.version=1;old.fps=old.animations[0].fps;delete old.animations;delete old.order;for(const p of Object.values(old.parts))for(const k of ['x','y','w','h','pivotX','pivotY'])delete p[k];
  await elements.file.onchange({target:{files:[{size:100,text:async()=>JSON.stringify(old)}],value:''}});
- assert.equal(project().version,2);assert.equal(project().parts.armL.w,23);
+ assert.equal(project().version,3);assert.equal(project().parts.armL.w,23);
  const invalid=project();invalid.parts.body.w=-1;
  await elements.file.onchange({target:{files:[{size:100,text:async()=>JSON.stringify(invalid)}],value:''}});
  assert.match(elements.status.textContent,/inválida/);assert.equal(project().parts.body.w,62);
+ elements.newAnimation.onclick();assert.equal(project().animations.length,2);assert.equal(project().activeAnimation,1);
+ elements.animationName.value='Pular';elements.animationName.onchange();
+ elements.poseDuration.value='500';elements.poseDuration.onchange();
+ elements.add.onclick();elements.posX.value='356';elements.posX.oninput();
+ elements.loop.checked=false;elements.loop.onchange();
+ elements.fps.value='12';elements.fps.onchange();elements.exportSize.value='128';elements.exportSize.onchange();
+ assert.equal(sandbox.testHooks.totalDuration(),1000);assert.equal(sandbox.testHooks.tween(250).x,306);assert.equal(sandbox.testHooks.tween(750).x,356);
+ elements.export.onclick();const meta=JSON.parse(await downloads.at(-1).text());assert.equal(meta.frameCount,12);assert.equal(meta.frameWidth,128);assert.equal(meta.loop,false);assert.equal(meta.fps,12);
+ elements.copyAnimation.onclick();assert.equal(project().animations.length,3);elements.angle.value='60';elements.angle.oninput();assert.equal(project().animations[1].frames[1].angles.body,0);
+ elements.removeAnimation.onclick();assert.equal(project().animations.length,2);await elements.undo.onclick();assert.equal(project().animations.length,3);
+ elements.animation.value='0';elements.animation.onchange();assert.equal(project().animations[0].frames.length,1);
+ elements.play.onclick();animation(10000);assert.equal(elements.play.textContent,'■ Parar');elements.play.onclick();
+ elements.animation.value='1';elements.animation.onchange();elements.play.onclick();animation(10000);assert.equal(elements.play.textContent,'▶ Reproduzir');
+ elements.save.onclick();const saved=JSON.parse(await downloads.at(-1).text());assert.equal(saved.version,3);assert.equal(saved.animations[1].name,'Pular');
+ console.log('OK: animações independentes, duração, FPS, tamanho, PNG + metadados, duplicação, exclusão, histórico, loop e salvamento.');
  console.log('OK: arraste com pai girado, dimensões, pivô, camadas, desfazer/refazer, migração v1 e rejeição de geometria inválida.');
 })().catch(e=>{console.error(e);process.exitCode=1});
 
